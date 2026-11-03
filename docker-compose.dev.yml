@@ -1,0 +1,30 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: connect-postgres-dev
+    environment:
+      POSTGRES_USER: connect
+      POSTGRES_PASSWORD: connect_dev
+      POSTGRES_DB: connect_dev
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - connect_pg_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U connect -d connect_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+  app:
+    build: .
+    environment:
+      DATABASE_URL: postgresql://connect:connect_dev@postgres:5432/connect_dev
+      DEMO_MODE: "true"
+      NEXT_TELEMETRY_DISABLED: "1"
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+volumes:
+  connect_pg_dev:

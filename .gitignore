@@ -1,0 +1,30 @@
+# Private inputs and local credentials
+/private/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Dependencies and generated output
+node_modules/
+.next/
+out/
+dist/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# Local tooling and logs
+.DS_Store
+*.log
+.idea/
+.vscode/
+
+# Local database artifacts and source attachments
+*.db
+*.sqlite*
+pgdata/
+postgres-data/
+**/connect_seed_users.json
+**/Prashant_ConnectInternationals_Brief*
