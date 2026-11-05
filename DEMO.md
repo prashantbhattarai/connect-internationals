@@ -108,8 +108,35 @@ captures only viewport pixels. The launcher reuses the guarded Stage 6 temporary
 schema namespace and cleans only its own schema when stopped. Do not run against
 an arbitrary app URL: the driver is fixed to isolated localhost:3100.
 
-The driver is not a full recording of all steps above: opt-in/filter editing,
+The Stage 7 driver is not a full recording of all steps above: opt-in/filter editing,
 clipboard/fallback, invitation revocation/acceptance via clicks, circle join/leave
-via clicks, keyboard/mobile layout and cross-tab behavior remain manual checks.
+via clicks, keyboard/mobile layout and cross-tab behavior were left manual at
+Stage 7. See the Stage 8 coverage below for the later browser verification.
 Server rules for those flows have separate regression evidence. No video was
 recorded or sent to Maxi; the files are ready for local review.
+
+
+## Stage 8 browser verification
+
+The expanded driver uses the same guarded, randomly named isolated schema and
+seven synthetic identities. It starts A/B hidden with no prepared introduction,
+then exercises the forms. Build first, then start the fixture server:
+
+```sh
+docker compose -f docker-compose.dev.yml run --rm tools npm run build
+docker compose -f docker-compose.dev.yml run --rm --name connect-stage8-browser-tools -e STAGE8_BROWSER=true -p 127.0.0.1:3100:3100 tools node scripts/run-ts.cjs scripts/stage7-browser-server.ts
+```
+
+In another terminal (host dependencies and Chrome required):
+
+```sh
+node scripts/stage8-browser-check.cjs
+docker stop --timeout 20 connect-stage8-browser-tools
+```
+
+Each run needs a fresh fixture server; stopping it removes only its temporary
+schema. The fixed target is localhost:3100, never the live demo. No seed import,
+live deletion or volume reset is involved. The Stage 6 isolated deletion evidence
+is reused; deletion behavior was unchanged. Stage 8 screenshots are in
+`docs/screenshots/stage8/`; the exact coverage, fixes, results and remaining manual
+checks are recorded in [STAGE8_SUMMARY.md](STAGE8_SUMMARY.md). No video was recorded.

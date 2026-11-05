@@ -2,7 +2,8 @@
 
 Maxi: this local prototype implements profiles/discovery, introductions and
 accepted chat, circles/invitations, and safety controls through Stage 6. Stage 7
-adds the design and demo handoff. Start with [DESIGN.md](DESIGN.md) and the
+adds the design and demo handoff; Stage 8 verifies the browser journeys and repairs
+keyboard dialogs. Start with [DESIGN.md](DESIGN.md) and the
 [3–5-minute walkthrough](DEMO.md). No real login, email, payments or AWS integration
 is enabled. Identity, profile enrichment and consent are explicitly simulated.
 
@@ -152,5 +153,23 @@ must remain. Stop the live app non-destructively with `... stop app`.
 UI is in `app/components`, thin routes in `app/api/connect`, cookie identity in
 `lib/auth/currentUser.ts`, policy in `lib/db/services`, Prisma queries in
 `lib/db/repositories`, and schema/migrations in `prisma`. `PROGRESS.md` and
-`STAGE*_SUMMARY.md` record actual results and limits. Read `STAGE7_SUMMARY.md` for
-this handoff's checks; screenshots are synthetic fixtures, not student activity.
+`STAGE*_SUMMARY.md` record actual results and limits. Read `STAGE8_SUMMARY.md` for
+the final handoff checks; screenshots are synthetic fixtures, not student activity.
+
+
+## Submission access (when ready)
+
+The repository is currently public by the owner's explicit choice. Stage 8 leaves
+visibility unchanged; source visibility does not make the demo app safe to deploy.
+To switch back to private before submission, run locally:
+
+```sh
+gh repo edit prashantbhattarai/connect-internationals --visibility private --accept-visibility-change-consequences
+gh repo view prashantbhattarai/connect-internationals --json nameWithOwner,visibility
+```
+
+Then open GitHub repository **Settings → Collaborators → Add people**, enter the
+GitHub username Maxi specifies, and grant the needed access (read access is enough
+for review). Maxi must accept the invitation. No invitation has been sent by this
+handoff. Making a repository private cannot recall previously downloaded copies.
+Supply the private seed separately through an authorized channel.

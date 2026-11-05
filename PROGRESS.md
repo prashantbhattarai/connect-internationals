@@ -30,7 +30,9 @@
 
 ## Scope and limitations
 
-Stages 1–7 are complete at the checkpoints below. Stage 7 produced design/setup/demo documentation and five real Chrome screenshots using isolated synthetic fixtures. Earlier unavailable-browser notes are historical; see the Stage 6/7 evidence. Stage 8 has not started. No remote, push, public deployment, external messaging or seed upload occurred.
+Stages 1–8 are complete at the checkpoints below. Stage 7 produced design/setup/demo documentation and five real Chrome screenshots using isolated synthetic fixtures. Earlier unavailable-browser notes are historical; see the Stage 6/7 evidence. Stage 8 is recorded at the end of this file. The repository was subsequently
+created and made public by explicit owner instruction; Stage 8 leaves its visibility
+unchanged. No app deployment, external messaging or private seed upload occurred.
 
 
 ## Stage 2 — complete
@@ -549,3 +551,64 @@ Host-mode setup was documented but not executed on the host's different Node.
 Production auth, moderation staffing, retention/backup policy, supported stack/
 security upgrades, map and notifications remain proposals. No Stage 7 blocker.
 **Stopped after Stage 7; Stage 8 not started.**
+
+
+## Stage 8 — complete (November 5, 2026)
+
+Started from Stage 7 commit a085eb975a4b7c27785cf254d55d16f8c7a0df55.
+Read Prompt 8, AGENTS.md, prior progress and STAGE7_SUMMARY.md. The owner's explicit
+Stage 8 instruction authorizes this commit/push and takes precedence over the
+playbook's earlier no-push wording. No new feature, integration, migration,
+dependency or database reset was introduced.
+
+- Added shared introduction/safety dialog keyboard focus entry, forward/reverse
+  Tab containment, idle Escape close, focus restoration and background scroll
+  lock. Introduction content is bounded/scrollable on short screens. Added a
+  textarea focus outline. Corrected future-tense discovery/free-access UI copy.
+- New scripts/stage8-browser-check.cjs drives real Chrome against the production
+  build on localhost:3100. STAGE8_BROWSER=true configures the existing guarded
+  fixture server with A/B hidden and no prepared introduction. Seven identities
+  are synthetic; the random isolated Stage 6 schema namespace is reused.
+- Final browser run passed clicked opt-in/preview/save for A/B; empty/exact/cleared
+  interest filters and shared-interest reasons; composed introduction; recipient
+  acceptance; two composed/sent messages and reload persistence; C denied both
+  UI history and API; circle join/member-empty/leave; approved circle invitation
+  creation; copy button success and clipboard equality; forced unavailable
+  clipboard fallback/focused selection; newcomer activation, separate introduction,
+  creator acceptance and separate circle join; creator revocation and unavailable
+  landing; block and denied old chat. No live profile was changed for this run.
+- Keyboard assertions passed focus entry, Tab, Shift+Tab wrap, Escape close,
+  restored opener and Enter reopen in introduction; safety Escape/restore/Enter,
+  Tab through fields and forward wrapping. No document horizontal overflow at
+  375 and 1440px; nine viewport screenshots visually reviewed; zero JS exceptions.
+  Persona/native option changes were dispatched through the select change event;
+  typing used Chrome input, actions used mouse events, navigation used CDP.
+- Initial expanded harness attempts failed on text-selection behavior, counting
+  informational articles as circles, and incomplete native Enter payloads. Fixed
+  the harness, retained assertions, and reran the complete journey successfully.
+  The dialog accessibility gap was found in code review, then verified after repair.
+- Node 20 typecheck, lint and final production build passed. Docker app image
+  generation/build/startup passed after final UI changes. db:validate, test:stage3,
+  test:persona and test:stage3:http passed; normal/reproduction Compose configs,
+  JavaScript syntax and Git whitespace checks passed. No dependency install/audit
+  rerun; historical Stage 7 findings still apply, not a new security audit.
+- Stage 6 isolated deletion evidence reused because deletion paths were unchanged.
+  Full Stage 4–6 DB/HTTP suites and Stage 7 clean import reproduction were not
+  repeated for UI/docs-only fixes. No destructive test ran on live profiles.
+- Temporary browser server/profile/schema cleaned. Live database remains 925 User
+  rows/925 distinct IDs, zero test schemas. Node 20.20.2 app and healthy PostgreSQL
+  retain original volumes, loopback ports and /connect HTTP 200. Runtime private/
+  and .env absent. Live URL: http://localhost:3000/connect.
+- README, DESIGN, DEMO reconciled; STAGE8_SUMMARY.md records run commands, coverage,
+  evidence and limits. Tracked/candidate/staged source and screenshots reviewed
+  for private inputs, credentials, tokens, logs and build output. Safe .env.example
+  retained; ignored seed/brief/environment files preserved locally.
+
+Remaining manual checks: physical mobile/touch, Safari/Firefox, screen readers,
+full keyboard traversal, cross-tab/back-cache recovery, exact poll/abort timing,
+and slow/offline/retry behavior. The clipboard failure branch was simulated by
+making the clipboard API unavailable, not an OS permission-dialog test. No video
+was recorded. Local demo authentication, cohort inference, broad deletion locks,
+moderation/retention and unsupported stack/audit limits remain documented.
+Repository remains public by prior owner choice; no Maxi invitation sent.
+Stopped after Stage 8; no additional feature work is authorized by this handoff.

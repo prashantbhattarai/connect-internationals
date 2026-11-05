@@ -75,7 +75,9 @@ side of a block before lists, direct lookup, filters, counts and ranking. Routes
 return allowlisted DTOs, never raw Prisma records, and personal responses are
 private/no-store. Cookie identity is validated on every request; mutations check
 origin and stale-persona identity. The demo cookie is deliberate impersonation,
-not secure authentication; production must replace it.
+not secure authentication; production must replace it. Introduction and safety
+dialogs move focus inside, contain Tab navigation, close on Escape when idle,
+and restore the opener; short screens can scroll the dialog content.
 
 Visible demographic tuples require at least five eligible peers, otherwise all
 background fields are stripped. Filtering reapplies the policy; demographic
