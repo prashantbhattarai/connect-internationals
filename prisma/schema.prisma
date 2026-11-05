@@ -1,0 +1,207 @@
+generator client {
+ provider = "prisma-client-js"
+}
+datasource db {
+ provider = "postgresql"
+ url = env("DATABASE_URL")
+}
+enum ConnectionState {
+ PENDING
+ ACCEPTED
+ DECLINED
+ CANCELLED
+ CLOSED
+}
+model User {
+ id String @id
+ profile ConnectProfile?
+ tombstone ProfileDeletion?
+ sent ConnectionRequest[] @relation("sender")
+ received ConnectionRequest[] @relation("recipient")
+ messages Message[]
+ blocks Block[] @relation("blocker")
+ blockedBy Block[] @relation("blocked")
+ reports Report[] @relation("reporter")
+ reported Report[] @relation("subject")
+ memberships CircleMembership[]
+ invitations Invitation[]
+ claim ReferralClaim?
+ usage UsageCounter[]
+ invitationRestrictions InvitationRestriction[]
+}
+model ConnectProfile {
+ id String @id @default(cuid())
+ userId String @unique
+ user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ alias String
+ demoOrdinal Int? @unique
+ nationality String?
+ city String?
+ university String?
+ major String?
+ interests String[]
+ purposes String[]
+ lookingFor String[]
+ canHelpWith String[]
+ targetRoles String[]
+ provenance Json
+ discoverable Boolean @default(false)
+ showNationality Boolean @default(false)
+ showCity Boolean @default(false)
+ showUniversity Boolean @default(false)
+ showMajor Boolean @default(false)
+ demoActivatedAt DateTime?
+ nationalityPreference Boolean @default(false)
+ consentSource String @default("none")
+ consentAt DateTime?
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ @@index([discoverable])
+ @@index([nationality])
+ @@index([city])
+ @@index([university])
+ @@index([major])
+ @@index([interests], type: Gin)
+ @@index([purposes], type: Gin)
+}
+model ProfileDeletion {
+ id String @id @default(cuid())
+ userId String @unique
+ user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ deletedAt DateTime @default(now())
+}
+model ConnectionRequest {
+ id String @id @default(cuid())
+ senderId String
+ recipientId String
+ sender User @relation("sender", fields: [senderId], references: [id], onDelete: Cascade)
+ recipient User @relation("recipient", fields: [recipientId], references: [id], onDelete: Cascade)
+ pairLow String
+ pairHigh String
+ state ConnectionState @default(PENDING)
+ purpose String
+ note String @db.VarChar(300)
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ invitationId String?
+ invitation Invitation? @relation(fields: [invitationId], references: [id], onDelete: SetNull)
+ invitationAlias String?
+ invitationSenderAlias String?
+ conversation Conversation?
+ @@index([invitationId])
+ @@unique([pairLow, pairHigh])
+ @@index([senderId, state, createdAt])
+ @@index([recipientId, state, createdAt])
+}
+model Conversation {
+ id String @id @default(cuid())
+ requestId String @unique
+ request ConnectionRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+ createdAt DateTime @default(now())
+ messages Message[]
+}
+model Message {
+ id String @id @default(cuid())
+ conversationId String
+ conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+ userId String
+ user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ text String @db.VarChar(2000)
+ createdAt DateTime @default(now())
+ @@index([conversationId, createdAt, id])
+ @@index([userId, createdAt])
+}
+model Block {
+ id String @id @default(cuid())
+ label String @default("Blocked profile") @db.VarChar(60)
+ userId String
+ blockedId String
+ user User @relation("blocker", fields: [userId], references: [id], onDelete: Cascade)
+ blocked User @relation("blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+ createdAt DateTime @default(now())
+ @@unique([userId, blockedId])
+ @@index([blockedId])
+}
+model Report {
+ id String @id @default(cuid())
+ userId String
+ subjectId String
+ user User @relation("reporter", fields: [userId], references: [id], onDelete: Cascade)
+ subject User @relation("subject", fields: [subjectId], references: [id], onDelete: Cascade)
+ reason String @db.VarChar(100)
+ context String? @db.VarChar(2000)
+ createdAt DateTime @default(now())
+ @@index([userId, createdAt])
+ @@index([subjectId])
+}
+model Circle {
+ id String @id @default(cuid())
+ slug String @unique
+ name String
+ purpose String
+ starterActivity String
+ memberships CircleMembership[]
+ invitations Invitation[]
+}
+model CircleMembership {
+ id String @id @default(cuid())
+ userId String
+ circleId String
+ user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ circle Circle @relation(fields: [circleId], references: [id], onDelete: Cascade)
+ createdAt DateTime @default(now())
+ @@unique([userId, circleId])
+ @@index([circleId])
+}
+model Invitation {
+ id String @id @default(cuid())
+ tokenHash String @unique
+ userId String
+ user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ circleId String?
+ circle Circle? @relation(fields: [circleId], references: [id], onDelete: Cascade)
+ approvedAlias String
+ message String @db.VarChar(300)
+ allowsIntroductions Boolean @default(false)
+ expiresAt DateTime
+ revokedAt DateTime?
+ createdAt DateTime @default(now())
+ claims ReferralClaim[]
+ requests ConnectionRequest[]
+ restrictions InvitationRestriction[]
+ @@index([userId])
+ @@index([circleId])
+ @@index([expiresAt])
+}
+model ReferralClaim {
+ id String @id @default(cuid())
+ userId String @unique
+ user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ invitationId String
+ invitation Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+ activatedAt DateTime @default(now())
+ acceptedAt DateTime?
+ revokedAt DateTime?
+ @@index([invitationId])
+}
+model UsageCounter {
+ id String @id @default(cuid())
+ userId String
+ user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ action String
+ windowStart DateTime
+ count Int @default(0)
+ @@unique([userId, action, windowStart])
+ @@index([windowStart])
+}
+
+model InvitationRestriction {
+ id String @id @default(cuid())
+ userId String
+ user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ invitationId String
+ invitation Invitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+ createdAt DateTime @default(now())
+ @@unique([userId, invitationId])
+ @@index([invitationId])
+}

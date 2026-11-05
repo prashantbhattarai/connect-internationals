@@ -1,0 +1,4 @@
+export const reportReasons = ["spam", "harassment", "impersonation", "inappropriate_content", "other"] as const;
+export type BlockList = {viewerId:string;items:{targetId:string;label:string;createdAt:string}[];page:number;hasNext:boolean};
+export const deletionPhrase="DELETE CONNECT PROFILE";
+export const deletionPolicy="Delete your Connect profile, background fields, interests, provenance and consent data, memberships, all invitations you created and their referral attribution, your own referral attribution, blocks involving you, reports involving you, and usage records. All your introductions, one-to-one conversations and messages are deleted for BOTH participants. Other people's own profiles and usage records remain. Only your minimal User ID and a deletion marker remain for you, so reseeding cannot restore this profile.";

@@ -10,7 +10,22 @@
     "start": "next start -H 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "lint": "next lint",
-    "build": "next build"
+    "build": "next build",
+    "db:validate": "prisma validate",
+    "db:generate": "prisma generate",
+    "db:migrate": "node scripts/migrate-local.cjs",
+    "db:seed": "node scripts/run-ts.cjs prisma/seed.ts",
+    "test:stage2": "node scripts/run-ts.cjs scripts/verify-stage2.ts",
+    "test:persona": "node scripts/run-ts.cjs scripts/verify-persona.ts",
+    "test:stage3": "node scripts/run-ts.cjs scripts/verify-stage3.ts",
+    "test:stage3:http": "node scripts/run-ts.cjs scripts/verify-stage3-http.ts",
+    "test:stage4": "node scripts/run-ts.cjs scripts/run-stage4-tests.ts",
+    "test:stage4:http": "STAGE4_HTTP=true node scripts/run-ts.cjs scripts/run-stage4-tests.ts",
+    "db:circles": "node scripts/run-ts.cjs prisma/seedCircles.ts",
+    "test:stage5": "node scripts/run-ts.cjs scripts/run-stage5-tests.ts",
+    "test:stage5:http": "STAGE5_HTTP=true node scripts/run-ts.cjs scripts/run-stage5-tests.ts",
+    "test:stage6": "node scripts/run-ts.cjs scripts/run-stage6-tests.ts",
+    "test:stage6:http": "STAGE6_HTTP=true node scripts/run-ts.cjs scripts/run-stage6-tests.ts"
   },
   "dependencies": {
     "next": "14.2.35",
@@ -29,5 +44,8 @@
     "autoprefixer": "10.6.2",
     "eslint": "8.57.1",
     "eslint-config-next": "14.2.35"
+  },
+  "prisma": {
+    "seed": "node scripts/run-ts.cjs prisma/seed.ts"
   }
 }

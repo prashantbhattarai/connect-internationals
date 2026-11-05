@@ -1,0 +1,19 @@
+# Stage 7 clean-start check: separate project, ephemeral PostgreSQL, no named volumes.
+services:
+  postgres:
+    container_name: connect-stage7-postgres
+    ports: !reset []
+    volumes: !reset []
+    tmpfs:
+      - /var/lib/postgresql/data
+  tools:
+    volumes: !override
+      - .:/app
+      - ./private:/app/private:ro
+    tmpfs:
+      - /app/node_modules:exec
+  app:
+    ports: !override
+      - "127.0.0.1:3001:3000"
+    environment:
+      DEMO_ORIGIN: http://localhost:3001

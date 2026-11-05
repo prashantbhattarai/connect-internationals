@@ -1,0 +1,56 @@
+import assert from "node:assert/strict";
+import { contactService as service } from "../lib/db/services/contactService";
+import { ConnectError } from "../lib/db/services/connectValidation";
+import { db } from "../lib/db/repositories/client";
+import { fixturePersona,fixtureBlock,fixtureHidden,fixtureDeletion,fixtureUsage,fixturePending,pairCount,conversationCount,requestState,messageCount,usageTotal,fixtureMessages,fixtureConversationState,requireIsolatedStage4 } from "../lib/db/repositories/stage4TestRepo";
+const query=(values:Record<string,string>={})=>new URLSearchParams(values);
+const status=(expected:number)=>(error:unknown)=>error instanceof ConnectError&&error.status===expected;
+const send=(a:string,b:string,note="A purposeful hello")=>service.sendIntroduction(a,{recipientId:b,purpose:"friendship",note});
+async function accepted(a:string,b:string){const sent=await send(a,b);const result=await service.transitionRequest(b,sent.request.id,{action:"accept"});return{requestId:sent.request.id,conversationId:result.request.conversationId!};}
+async function main(){
+ requireIsolatedStage4();const[a,b,c]=await Promise.all([fixturePersona("A"),fixturePersona("B"),fixturePersona("C")]);
+ const sent=await send(a,b);assert.equal(sent.request.state,"PENDING");assert.equal(sent.request.direction,"outgoing");
+ assert.equal((await service.requests(b,query())).items[0].direction,"incoming");
+ await assert.rejects(service.conversationForRequest(a,sent.request.id),status(403));await assert.rejects(service.sendMessage(a,sent.request.id,{text:"too early"}),status(404));
+ await assert.rejects(service.transitionRequest(a,sent.request.id,{action:"accept"}),status(403));await assert.rejects(service.transitionRequest(c,sent.request.id,{action:"accept"}),status(404));
+ await assert.rejects(service.transitionRequest(b,sent.request.id,{action:"cancel"}),status(403));await assert.rejects(service.transitionRequest(a,sent.request.id,{action:"decline"}),status(403));
+ await assert.rejects(send(a,b),status(409));await assert.rejects(send(b,a),status(409));assert.equal(await pairCount(a,b),1);
+ const acceptances=await Promise.all(Array.from({length:8},()=>service.transitionRequest(b,sent.request.id,{action:"accept"})));
+ const ids=new Set(acceptances.map(r=>r.request.conversationId));assert.equal(ids.size,1);const conversationId=acceptances[0].request.conversationId!;assert.equal(await conversationCount(sent.request.id),1);
+ await assert.rejects(service.transitionRequest(b,sent.request.id,{action:"decline"}),status(409));
+ await service.sendMessage(a,conversationId,{text:"<script>window.fake=true</script>"});await service.sendMessage(b,conversationId,{text:"Hello A\nA persisted reply"});
+ const history=await service.messages(a,conversationId,query());assert.equal(history.items.length,2);assert.equal(history.items[0].sender,"you");assert.equal(history.items[1].sender,"peer");assert.equal(history.items[0].text,"<script>window.fake=true</script>");assert.deepEqual((await service.messages(a,conversationId,query())).items,history.items);
+ for(const operation of [()=>service.messages(c,conversationId,query()),()=>service.sendMessage(c,conversationId,{text:"forged"}),()=>service.conversationForRequest(c,sent.request.id)])await assert.rejects(operation(),status(404));
+ assert.equal((await service.conversations(c,query())).items.length,0);assert.equal((await service.requests(c,query())).items.length,0);
+ await assert.rejects(service.sendMessage(a,conversationId,{text:"x".repeat(2001)}),status(400));await assert.rejects(send(a,b,"x".repeat(301)),status(400));await assert.rejects(send(a,a),status(400));
+ await assert.rejects(service.sendIntroduction(a,{recipientId:c,purpose:"friendship",note:"hello",actorId:b}),status(400));
+ await assert.rejects(service.sendMessage(a,conversationId,{text:"hello",userId:c}),status(400));
+ await assert.rejects(service.messages(a,conversationId,query({limit:"51"})),status(400));
+ await fixtureMessages(conversationId,a);const seen:string[]=[];let before:string|null=null;
+ do{const page=await service.messages(a,conversationId,query({limit:"2",...(before?{before}:{})}));assert.ok(page.items.length<=2);const order=page.items.map(m=>`${m.createdAt}:${m.id}`);assert.deepEqual(order,[...order].sort());seen.push(...page.items.map(m=>m.id));before=page.nextBefore;}while(before);
+ assert.equal(new Set(seen).size,7);assert.equal(seen.length,7);await assert.rejects(service.messages(a,conversationId,query({before:"not_a_message"})),status(400));
+ await fixtureHidden(b,false);assert.equal((await service.messages(a,conversationId,query())).items.length,7);await service.sendMessage(b,conversationId,{text:"Existing accepted chat survives discovery opt-out"});
+ await fixtureBlock(a,b);for(const actor of[a,b]){await assert.rejects(service.messages(actor,conversationId,query()),status(404));await assert.rejects(service.sendMessage(actor,conversationId,{text:"blocked"}),status(404));assert.equal((await service.conversations(actor,query())).items.length,0);assert.equal((await service.requests(actor,query())).items.length,0);}
+ const[d,e,f,g]=await Promise.all([fixturePersona("D"),fixturePersona("E"),fixturePersona("F"),fixturePersona("G")]);
+ const declined=await send(d,e);await service.transitionRequest(e,declined.request.id,{action:"decline"});await assert.rejects(send(d,e),status(409));await assert.rejects(send(e,d),status(409));
+ const cancelled=await send(f,g);await service.transitionRequest(f,cancelled.request.id,{action:"cancel"});assert.equal(await usageTotal(f,"introduction"),1);await assert.rejects(service.transitionRequest(g,cancelled.request.id,{action:"accept"}),status(409));await assert.rejects(send(f,g),status(409));
+ const[h,i]=await Promise.all([fixturePersona("H"),fixturePersona("I")]);const raced=await send(h,i);
+ const race=await Promise.allSettled([service.transitionRequest(h,raced.request.id,{action:"cancel"}),service.transitionRequest(i,raced.request.id,{action:"accept"})]);assert.equal(race.filter(r=>r.status==="fulfilled").length,1);assert.equal(await conversationCount(raced.request.id),(await requestState(raced.request.id)).state==="ACCEPTED"?1:0);
+ const[j,k]=await Promise.all([fixturePersona("J"),fixturePersona("K")]);const crossed=await Promise.allSettled([send(j,k),send(k,j)]);assert.equal(crossed.filter(r=>r.status==="fulfilled").length,1);assert.equal(await pairCount(j,k),1);
+ const limited=await fixturePersona("limited"),targets=await Promise.all(Array.from({length:8},(_,n)=>fixturePersona(`limit_target_${n}`)));
+ const quota=await Promise.allSettled(targets.map(target=>send(limited,target)));assert.equal(quota.filter(r=>r.status==="fulfilled").length,5);for(const result of quota)if(result.status==="rejected")assert.ok(status(429)(result.reason));assert.equal(await usageTotal(limited,"introduction"),5);
+ const first=quota.find(r=>r.status==="fulfilled");assert.ok(first&&first.status==="fulfilled");await service.transitionRequest(limited,first.value.request.id,{action:"cancel"});
+ const ninth=await fixturePersona("limit_extra");await assert.rejects(send(limited,ninth),error=>status(429)(error)&&(error as ConnectError).retryAfter!>0);assert.equal(await usageTotal(limited,"introduction"),5);
+ const pending=await fixturePersona("pending_actor");await fixturePending(pending,20);const pendingTarget=await fixturePersona("pending_extra");await assert.rejects(send(pending,pendingTarget),status(429));const oldPending=(await service.requests(pending,query())).items[0];await service.transitionRequest(pending,oldPending.id,{action:"cancel"});await send(pending,pendingTarget);
+ const expired=await fixturePersona("expired_actor"),expiredPeer=await fixturePersona("expired_peer");await fixtureUsage(expired,"introduction",5,90000000);await send(expired,expiredPeer);
+ const[m,n,o]=await Promise.all([fixturePersona("M"),fixturePersona("N"),fixturePersona("O")]);const chat=await accepted(m,n);
+ const messages=await Promise.allSettled(Array.from({length:35},(_,index)=>service.sendMessage(m,chat.conversationId,{text:`Concurrent message ${index}`})));assert.equal(messages.filter(r=>r.status==="fulfilled").length,30);for(const result of messages)if(result.status==="rejected")assert.ok(status(429)(result.reason));assert.equal(await messageCount(chat.conversationId),30);assert.equal(await usageTotal(m,"message"),30);
+ const otherChat=await accepted(m,o);await assert.rejects(service.sendMessage(m,otherChat.conversationId,{text:"Cannot bypass quota through another conversation"}),status(429));await fixtureUsage(n,"message",30,61000);await service.sendMessage(n,chat.conversationId,{text:"Expired rolling events do not count"});
+ await fixtureDeletion(o);await assert.rejects(service.messages(m,otherChat.conversationId,query()),status(404));await assert.rejects(service.sendMessage(o,otherChat.conversationId,{text:"deleted"}),status(404));
+ const[hidden,deleted,blocked,reverse,receiver]=await Promise.all([fixturePersona("hidden",false),fixturePersona("deleted"),fixturePersona("blocked"),fixturePersona("reverse"),fixturePersona("receiver")]);await fixtureDeletion(deleted);await fixtureBlock(receiver,blocked);await fixtureBlock(reverse,receiver);
+ for(const peer of[hidden,deleted,blocked,reverse])await assert.rejects(send(receiver,peer),status(404));await assert.rejects(send(hidden,receiver),status(403));
+ const hiddenPending=await send(receiver,c);await fixtureHidden(receiver,false);await assert.rejects(service.transitionRequest(c,hiddenPending.request.id,{action:"accept"}),status(404));const hiddenItem=(await service.requests(c,query())).items.find(item=>item.id===hiddenPending.request.id)!;assert.equal(hiddenItem.peer,null);assert.equal(hiddenItem.note,null);await service.transitionRequest(c,hiddenPending.request.id,{action:"decline"});
+ await fixtureConversationState(chat.requestId,"CLOSED");await assert.rejects(service.messages(m,chat.conversationId,query()),status(404));
+ console.log("PASS Stage 4 database: A/B/C authorization and persistence; pre-accept denial; one conversation under concurrent accepts; crossed/duplicate prevention; transitions; stable pagination; block/deletion/privacy gates; 5/day, 20 pending, 30/min concurrent limits; cancellation retention; rolling expiry; text bounds. Isolated fixtures only.");
+}
+main().catch(error=>{console.error(`Stage 4 database failure (${error instanceof Error?error.name:"unknown"}). Synthetic fixture details omitted.`);if(error instanceof Error)console.error(error.stack?.split("\n").filter(line=>/^\s+at /.test(line)).slice(0,5).join("\n"));process.exitCode=1;}).finally(()=>db.$disconnect());

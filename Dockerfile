@@ -7,7 +7,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 FROM dependencies AS builder
 COPY . .
-RUN npm run build
+RUN npm run db:generate && npm run build
 FROM base AS runner
 ENV NODE_ENV=production
 COPY --from=builder --chown=node:node /app/.next/standalone ./
